@@ -2,3 +2,5 @@ parser starting
 start Get content
 GEt content gotovo
 start parse content
+Ect novostej 20
+start server

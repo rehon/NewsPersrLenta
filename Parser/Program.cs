@@ -14,7 +14,7 @@ namespace Parser
     internal class Program
     {
         public static float TimeUpdate = 60;
-        public static int Chas = 1; // ? mb chas
+        public static int Chas = 1;
         public static string Url = "https://lenta.ru/parts/news/";
         public static List<News> News = new List<News>();
 
@@ -32,12 +32,12 @@ namespace Parser
             Trace.WriteLine("parser starting");
 
 
-            Console.WriteLine("TimeUpdate ");
+            Console.WriteLine("TimeUpdate (seconds)");
             string update = Console.ReadLine(); 
             if(String.IsNullOrEmpty(update) == false)
                 TimeUpdate = Convert.ToInt32(update);
 
-            Console.WriteLine("Period ");
+            Console.WriteLine("Period (Houres)");
             string periode = Console.ReadLine();
             if (String.IsNullOrEmpty(periode) == false)
                 Chas = Convert.ToInt32(periode);
@@ -46,6 +46,8 @@ namespace Parser
             Timer = new Timer(TimeUpdate * 1000);
             Timer.Elapsed += TimerTic;
             Timer.Start();
+
+            StartServer();
 
             Console.ReadLine();
             Trace.Flush();
@@ -57,7 +59,7 @@ namespace Parser
 
             try
             {
-                IPEndPoint iPEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 5000);
+                IPEndPoint iPEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 5194);
                 Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 socket.Bind(iPEndPoint);
                 socket.Listen(10);
@@ -67,12 +69,14 @@ namespace Parser
                     Socket Handler = socket.Accept();
                     byte[] buffer = new byte[10485760];
                     int byteLength = Handler.Receive(buffer);
-                    string resive = JsonConvert.SerializeObject(byteLength);
+                    string resive = Encoding.UTF8.GetString(buffer, 0, byteLength);
                     string command = JsonConvert.DeserializeObject<string>(resive);
+
+                    Console.WriteLine(command);
 
                     if(command == "start")
                     {
-                        string json = JsonConvert.SerializeObject(buffer);
+                        string json = JsonConvert.SerializeObject(News);
                         buffer = Encoding.UTF8.GetBytes(json);
                         Handler.Send(buffer);
                     }
@@ -121,6 +125,7 @@ namespace Parser
 
                 var html = new HtmlDocument();
                 html.LoadHtml(Content);
+                int i = 0;
 
                 var doc = html.DocumentNode;
                 HtmlNodeCollection htmlNodes = doc.SelectNodes("//*[@class='parts-page__item']");
@@ -135,7 +140,11 @@ namespace Parser
                     if (newDate.Hour != Chas) continue;
 
                     News.Add(new Common.News(Name, newDate, Src));
+
+                    i++;
                 }
+
+                Trace.WriteLine("Ect novostej " + i);
 
             }
             catch (Exception ex)
